@@ -27,6 +27,27 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="Id Merchant * "/>
+
+        <EditText
+            android:id="@+id/id_merchant"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Id Categoty * "/>
+
+        <EditText
+            android:id="@+id/id_category"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"/>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="Harga Produk * "/>
 
         <EditText
@@ -52,16 +73,6 @@
 
         <EditText
             android:id="@+id/qty_product"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Kategori Produk * "/>
-
-        <Spinner
-            android:id="@+id/cat_product"
             android:layout_width="match_parent"
             android:layout_height="40dp"/>
 

@@ -1,4 +1,4 @@
-package com.idn99.project.marketplacemerchant.JavaClass;
+package com.idn99.project.marketplacemerchant.model;
 
 public class Merchant {
 

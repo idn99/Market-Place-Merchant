@@ -34,6 +34,7 @@ import com.google.gson.Gson;
 import com.idn99.project.marketplacemerchant.R;
 import com.idn99.project.marketplacemerchant.adapter.CategoriesAdapter;
 import com.idn99.project.marketplacemerchant.model.Categories;
+import com.idn99.project.marketplacemerchant.model.Product;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,36 +47,34 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
-public class AddProduct extends AppCompatActivity implements AdapterView.OnItemSelectedListener{
+public class EditProductActivity extends AppCompatActivity{
 
-    private EditText nameP, priceP, desP, qtyP;
+    private EditText nameP, priceP, desP, qtyP, idM, idC;
     private Button imgAdd, addP;
-    private Spinner catP;
     private ImageView imgP;
 
     private RequestQueue requestQueue;
-    private ArrayList<Categories> categories;
-    private CategoriesAdapter adapter;
+
+    private String slug;
+    private Product product;
 
     //set default request code for intent result
     private int PICK_IMAGE_REQUEST = 1;
     private String productImage = null; // image string yang akan dikirim  ke server (bukan dalam bentuk gambar tapi dalam bentuk string base64.
     private String productName, productDesc,productQty, productPrice, categoryId, merchantId;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_product);
+        setContentView(R.layout.activity_edit_product);
+
+        Bundle bundle = getIntent().getExtras();
+        slug = bundle.getString("slug");
 
         inisial();
 
-        categories = new ArrayList<>();
-        // adapter
-        adapter = new CategoriesAdapter();
-        catP.setAdapter(adapter);
-        catP.setOnItemSelectedListener(this);
-
-        getAllCategories();
+        getDataSebelumnya();
 
         imgAdd.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,6 +91,8 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
                 productDesc = validasiEdt(desP);
                 productPrice = validasiEdt(priceP);
                 productQty = validasiEdt(qtyP);
+                categoryId = validasiEdt(idC);
+                merchantId = validasiEdt(idM);
 
                 merchantId = "2";
 
@@ -101,10 +102,12 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
                 VolleyLoad();
 
-                Intent intent = new Intent(AddProduct.this, ListProduct.class);
+                Intent intent = new Intent(EditProductActivity.this, ListProduct.class);
                 startActivity(intent);
             }
         });
+
+
     }
 
     public String validasiEdt(EditText edt){
@@ -124,57 +127,25 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
         desP = findViewById(R.id.des_product);
         qtyP = findViewById(R.id.qty_product);
 
+        idM = findViewById(R.id.id_merchant);
+        idC = findViewById(R.id.id_category);
+
         imgAdd = findViewById(R.id.add_image);
         addP = findViewById(R.id.add_product);
-
-        catP = findViewById(R.id.cat_product);
 
         imgP = findViewById(R.id.img_product);
     }
 
-    private void getAllCategories(){
-        String url = "http://210.210.154.65:4444/api/categories";
-
-        JsonObjectRequest listCatReq = new JsonObjectRequest(Request.Method.GET, url, null,
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        // handle response
-                        try {
-                            JSONArray data = response.getJSONArray("data");
-                            for(int i=0;i<data.length();i++){
-                                Gson gson = new Gson();
-                                Categories category = gson.fromJson(data.getJSONObject(i).toString(),Categories.class);
-                                categories.add(category);
-                            }
-
-                            adapter.addData(categories);
-                            adapter.notifyDataSetChanged();
-                            Toast.makeText(getApplicationContext(),String.valueOf(adapter.getCount()),Toast.LENGTH_LONG).show();
-
-                        }
-                        catch (JSONException e){
-                            e.printStackTrace();
-                        }
-
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                    }
-                });
-        requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(listCatReq);
-    }
 
     public void VolleyLoad(){
 
-        String url = "http://210.210.154.65:4444/api/products";
+        String url = "http://210.210.154.65:4444/api/product/"+product.getProductId()+"/update";
         requestQueue = Volley.newRequestQueue(this);
 
-        StringRequest addProductReq = new StringRequest(Request.Method.POST, url,
+//        http://{baseurl}/api/product/{id}/update
+//        Method : PUT
+
+        StringRequest addProductReq = new StringRequest(Request.Method.PUT, url,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
@@ -186,13 +157,13 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
                         } catch (JSONException ex) {
                             ex.printStackTrace();
                         }
-                        Toast.makeText(AddProduct.this, response, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(EditProductActivity.this, "data telah terupdate", Toast.LENGTH_SHORT).show();
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(AddProduct.this, error.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(EditProductActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 }){
             @Override
@@ -214,13 +185,54 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
-                return super.getHeaders();
+                Map<String,String> params = new Hashtable<>();
+                params.put("Content-type","application/x-www-form-urlencoded");
+                return params;
             }
         };
         int socketTimeout = 30000;
         RetryPolicy retryPolicy = new DefaultRetryPolicy(socketTimeout, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT);
         addProductReq.setRetryPolicy(retryPolicy);
         requestQueue.add(addProductReq);
+    }
+
+    private void getDataSebelumnya(){
+
+        String url = "http://210.210.154.65:4444/api/product/"+slug;
+
+        Toast.makeText(this, url, Toast.LENGTH_SHORT).show();
+
+        requestQueue = Volley.newRequestQueue(this);
+        JsonObjectRequest req = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+
+                        try {
+                            Gson gson = new Gson();
+                            JSONObject jsonObject = response.getJSONObject("data");
+                            product = gson.fromJson(jsonObject.toString(), Product.class);
+
+                            nameP.setText(product.getProductName());
+                            desP.setText(product.getProductDesc());
+                            qtyP.setText(String.valueOf(product.getProductQty()));
+                            Glide.with(getApplicationContext()).load(product.getProductImage()).into(imgP);
+                            priceP.setText(String.valueOf(product.getProductPrice()));
+                            idM.setText(String.valueOf(product.getMerchant().getMerchantId()));
+                            idC.setText(String.valueOf(product.getCategory().getCategoryId()));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(EditProductActivity.this, "Data tidak terbaca", Toast.LENGTH_SHORT).show();
+                    }
+                });
+        requestQueue.add(req);
     }
 
     private void showFileChooser() {
@@ -268,14 +280,4 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
     }
 
-
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        this.categoryId = String.valueOf(adapter.getItemId(position));
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
-    }
 }

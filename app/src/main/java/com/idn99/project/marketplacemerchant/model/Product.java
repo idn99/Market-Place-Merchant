@@ -1,4 +1,4 @@
-package com.idn99.project.marketplacemerchant.JavaClass;
+package com.idn99.project.marketplacemerchant.model;
 
 public class Product {
 
@@ -7,15 +7,19 @@ public class Product {
     private String productSlug;
     private int productQty;
     private String productImage;
+    private int productPrice;
+    private String productDesc;
     private Merchant merchant;
     private Categories category;
 
-    public Product(int productId, String productName, String productSlug, int productQty, String productImage, Merchant merchant, Categories category) {
+    public Product(int productId, String productName, String productSlug, int productQty, String productImage, int productPrice, String productDesc, Merchant merchant, Categories category) {
         this.productId = productId;
         this.productName = productName;
         this.productSlug = productSlug;
         this.productQty = productQty;
         this.productImage = productImage;
+        this.productPrice = productPrice;
+        this.productDesc = productDesc;
         this.merchant = merchant;
         this.category = category;
     }
@@ -38,6 +42,14 @@ public class Product {
 
     public String getProductImage() {
         return productImage;
+    }
+
+    public int getProductPrice() {
+        return productPrice;
+    }
+
+    public String getProductDesc() {
+        return productDesc;
     }
 
     public Merchant getMerchant() {
