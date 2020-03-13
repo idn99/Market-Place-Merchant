@@ -1,16 +1,20 @@
-package com.idn99.project.marketplacemerchant.activity;
+package com.idn99.project.marketplacemerchant.fragment;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -33,6 +37,7 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.gson.Gson;
 import com.idn99.project.marketplacemerchant.Network.VolleyService;
 import com.idn99.project.marketplacemerchant.R;
+import com.idn99.project.marketplacemerchant.activity.HomeActivity;
 import com.idn99.project.marketplacemerchant.adapter.CategoriesAdapter;
 import com.idn99.project.marketplacemerchant.model.AccessToken;
 import com.idn99.project.marketplacemerchant.model.Categories;
@@ -47,11 +52,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
-public class AddProduct extends AppCompatActivity implements AdapterView.OnItemSelectedListener{
+import static android.app.Activity.RESULT_OK;
+import static android.content.Context.MODE_PRIVATE;
+
+/**
+ * A simple {@link Fragment} subclass.
+ */
+public class AddProduct extends Fragment implements AdapterView.OnItemSelectedListener{
 
     private EditText nameP, priceP, desP, qtyP;
     private Button imgAdd, addP;
@@ -69,12 +79,28 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
     AccessToken accessToken;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add_product);
+    public AddProduct() {
+        // Required empty public constructor
+    }
 
-        inisial();
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View rootView = inflater.inflate(R.layout.fragment_add_product, container, false);
+
+        nameP = rootView.findViewById(R.id.name_product);
+        priceP = rootView.findViewById(R.id.price_product);
+        desP = rootView.findViewById(R.id.des_product);
+        qtyP = rootView.findViewById(R.id.qty_product);
+
+        imgAdd = rootView.findViewById(R.id.add_image);
+        addP = rootView.findViewById(R.id.add_product);
+
+        catP = rootView.findViewById(R.id.cat_product);
+
+        imgP = rootView.findViewById(R.id.img_product);
 
         categories = new ArrayList<>();
         // adapter
@@ -108,33 +134,8 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
             }
         });
-    }
 
-//    public String validasiEdt(EditText edt){
-//        String text = null;
-//        if (edt.getText().toString().length() <= 0) {
-//            edt.setError("Isi dulu cuk , matalu siwer apa");
-//        }else {
-//            text = edt.getText().toString();
-//            Intent intent = new Intent(AddProduct.this, ListProduct.class);
-//            startActivity(intent);
-//        }
-//        return text;
-//    }
-
-
-    public void inisial(){
-        nameP = findViewById(R.id.name_product);
-        priceP = findViewById(R.id.price_product);
-        desP = findViewById(R.id.des_product);
-        qtyP = findViewById(R.id.qty_product);
-
-        imgAdd = findViewById(R.id.add_image);
-        addP = findViewById(R.id.add_product);
-
-        catP = findViewById(R.id.cat_product);
-
-        imgP = findViewById(R.id.img_product);
+        return rootView;
     }
 
     private void getAllCategories(){
@@ -155,7 +156,7 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
 
                             adapter.addData(categories);
                             adapter.notifyDataSetChanged();
-                            Toast.makeText(getApplicationContext(),String.valueOf(adapter.getCount()),Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(),String.valueOf(adapter.getCount()),Toast.LENGTH_LONG).show();
 
                         }
                         catch (JSONException e){
@@ -170,12 +171,12 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
                         error.printStackTrace();
                     }
                 });
-        requestQueue = Volley.newRequestQueue(this);
+        requestQueue = Volley.newRequestQueue(getContext());
         requestQueue.add(listCatReq);
     }
 
     public void VolleyLoad(){
-        accessToken = TokenManager.getInstance(getSharedPreferences("pref", MODE_PRIVATE)).getToken();
+        accessToken = TokenManager.getInstance(this.getActivity().getSharedPreferences("pref", MODE_PRIVATE)).getToken();
 
         String url = "http://210.210.154.65:4444/api/merchant/products";
         final StringRequest stringRequest = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
@@ -187,10 +188,12 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
                     JSONObject jsonObject = new JSONObject(response);
                     int code = jsonObject.getInt("code");
                     if(code == 200){
-                        Toast.makeText(getApplicationContext(), jsonObject.getString("message"), Toast.LENGTH_LONG).show();
-                        Intent intent = new Intent(AddProduct.this, HomeActivity.class);
-                        startActivity(intent);
-                        finish();
+                        Toast.makeText(getContext(), jsonObject.getString("message"), Toast.LENGTH_LONG).show();
+                        nameP.setText("");
+                        priceP.setText("");
+                        desP.setText("");
+                        qtyP.setText("");
+                        imgP.setImageResource(0);
                     }
                     else{
                         //Toast.makeText(getApplicationContext(), jsonObject.getString("message"), Toast.LENGTH_LONG).show();
@@ -198,20 +201,20 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
                         if(errorResponse.getProductNameError().size() != 0) {
                             if (errorResponse.getProductNameError().get(0) != null) {
                                 nameP.setError(errorResponse.getProductNameError().get(0));
-                                Toast.makeText(getApplicationContext(), errorResponse.getProductNameError().get(0), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), errorResponse.getProductNameError().get(0), Toast.LENGTH_SHORT).show();
                             }
                         }
 
                         if(errorResponse.getProductQtyError().size() != 0) {
                             if (errorResponse.getProductQtyError().get(0) != null) {
                                 qtyP.setError(errorResponse.getProductQtyError().get(0));
-                                Toast.makeText(getApplicationContext(), errorResponse.getProductQtyError().get(0), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), errorResponse.getProductQtyError().get(0), Toast.LENGTH_SHORT).show();
                             }
                         }
                         if(errorResponse.getProductPriceError().size() != 0) {
                             if (errorResponse.getProductPriceError().get(0) != null) {
                                 priceP.setError(errorResponse.getProductPriceError().get(0));
-                                Toast.makeText(getApplicationContext(), errorResponse.getProductPriceError().get(0), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), errorResponse.getProductPriceError().get(0), Toast.LENGTH_SHORT).show();
                             }
                         }
                     }
@@ -226,12 +229,12 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
                 if(error.networkResponse.statusCode == 400){
-                    Toast.makeText(getApplicationContext(), String.valueOf(error.networkResponse), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), String.valueOf(error.networkResponse), Toast.LENGTH_LONG).show();
                 }
 
                 try {
                     String body = new String(error.networkResponse.data, "UTF-8");
-                    Toast.makeText(AddProduct.this, body, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), body, Toast.LENGTH_SHORT).show();
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -269,7 +272,7 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
         int socketTimeout = 30000;
         RetryPolicy retryPolicy = new DefaultRetryPolicy(socketTimeout, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT);
         stringRequest.setRetryPolicy(retryPolicy);
-        VolleyService.getInstance(getApplicationContext()).addToRequestQueue(stringRequest);
+        VolleyService.getInstance(getContext()).addToRequestQueue(stringRequest);
     }
 
     private void showFileChooser() {
@@ -283,17 +286,17 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri filePath = data.getData();
             try {
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), filePath);
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), filePath);
                 //encoding image to string
                 productImage = getStringImage(bitmap); // call getStringImage() method below this code
                 Log.d("image",productImage);
 
-                Glide.with(getApplicationContext())
+                Glide.with(getContext())
                         .load(bitmap)
                         .override(imgP.getWidth())
                         .transition(DrawableTransitionOptions.withCrossFade())
@@ -305,6 +308,7 @@ public class AddProduct extends AppCompatActivity implements AdapterView.OnItemS
             }
         }
     }
+
 
     // convert image bitmap to string base64
     public String getStringImage(Bitmap bmp) {

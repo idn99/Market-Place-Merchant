@@ -13,16 +13,20 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".activity.DeskripsiProduct"></activity>
-        <activity android:name=".activity.ListProduct">
+        <activity android:name=".activity.Setting"></activity>
+        <activity android:name=".activity.SplashScreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".activity.HomeActivity" />
+        <activity android:name=".activity.RegistActivity" />
+        <activity android:name=".activity.LoginActivity" />
+        <activity android:name=".activity.DeskripsiProduct" />
         <activity android:name=".activity.EditProductActivity" />
-        <activity android:name=".activity.AddProduct"></activity>
+        <activity android:name=".activity.AddProduct" />
     </application>
 
 </manifest>

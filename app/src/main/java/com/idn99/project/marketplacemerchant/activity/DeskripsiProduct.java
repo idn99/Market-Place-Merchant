@@ -13,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -22,13 +23,17 @@ import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.google.gson.Gson;
 import com.idn99.project.marketplacemerchant.R;
+import com.idn99.project.marketplacemerchant.model.AccessToken;
 import com.idn99.project.marketplacemerchant.model.Product;
+import com.idn99.project.marketplacemerchant.utils.TokenManager;
 
 import org.json.JSONObject;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.Locale;
+import java.util.Map;
 
 public class DeskripsiProduct extends AppCompatActivity {
 
@@ -36,6 +41,8 @@ public class DeskripsiProduct extends AppCompatActivity {
     private TextView priceP, qtyP, nameP, nameC, nameM, desP;
     private Button btnEdit, btnDelete;
     private Product product = null;
+
+    AccessToken accessToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,8 +82,10 @@ public class DeskripsiProduct extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         deleteProduct();
 
-                        Intent intent = new Intent(DeskripsiProduct.this, ListProduct.class);
+                        Intent intent = new Intent(DeskripsiProduct.this, HomeActivity.class);
                         startActivity(intent);
+                        HomeActivity.dashboard.finish();
+                        finish();
                     }
                 });
                 alert.create().show();
@@ -89,6 +98,7 @@ public class DeskripsiProduct extends AppCompatActivity {
                 Intent intent = new Intent(DeskripsiProduct.this, EditProductActivity.class);
                 intent.putExtra("slug",product.getProductSlug());
                 startActivity(intent);
+                finish();
             }
         });
 
@@ -111,7 +121,9 @@ public class DeskripsiProduct extends AppCompatActivity {
 
     public void deleteProduct(){
 
-        String url = "http://210.210.154.65:4444/api/product/"+product.getProductId()+"/delete";
+        accessToken = TokenManager.getInstance(getSharedPreferences("pref", MODE_PRIVATE)).getToken();
+
+        String url = "http://210.210.154.65:4444/api/merchant/product/"+product.getProductId()+"/delete";
 
         RequestQueue con = Volley.newRequestQueue(getApplicationContext());
 
@@ -127,7 +139,16 @@ public class DeskripsiProduct extends AppCompatActivity {
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(DeskripsiProduct.this, "Data Belum Terhapus , Cek Koneksi Internet", Toast.LENGTH_SHORT).show();
                     }
-                });
+                }){
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new Hashtable<>();
+                headers.put("Accept", "application/json");
+                headers.put("Content-Type", "application/x-www-form-urlencoded");
+                headers.put("Authorization", accessToken.getTokenType()+" "+accessToken.getAccessToken());
+                return headers;
+            }
+        };
         con.add(req);
     }
 }

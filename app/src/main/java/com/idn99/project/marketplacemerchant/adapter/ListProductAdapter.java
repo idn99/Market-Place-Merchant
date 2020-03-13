@@ -54,7 +54,6 @@ public class ListProductAdapter extends RecyclerView.Adapter<ListProductAdapter.
     @Override
     public void onBindViewHolder(@NonNull final MyViewHolder holder, final int position) {
         holder.tvProduct.setText(products.get(position).getProductName());
-        holder.tvMerchant.setText(products.get(position).getMerchant().getMerchantName());
 
         String baseUrl = "http://210.210.154.65:4444/storage/";
         String url = baseUrl+products.get(position).getProductImage();

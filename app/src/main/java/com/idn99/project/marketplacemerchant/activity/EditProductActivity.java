@@ -33,8 +33,11 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.gson.Gson;
 import com.idn99.project.marketplacemerchant.R;
 import com.idn99.project.marketplacemerchant.adapter.CategoriesAdapter;
+import com.idn99.project.marketplacemerchant.model.AccessToken;
 import com.idn99.project.marketplacemerchant.model.Categories;
 import com.idn99.project.marketplacemerchant.model.Product;
+import com.idn99.project.marketplacemerchant.model.ProductErrorResponse;
+import com.idn99.project.marketplacemerchant.utils.TokenManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,13 +50,16 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
-public class EditProductActivity extends AppCompatActivity{
+public class EditProductActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener{
 
-    private EditText nameP, priceP, desP, qtyP, idM, idC;
+    private EditText nameP, priceP, desP, qtyP;
     private Button imgAdd, addP;
     private ImageView imgP;
+    private Spinner catP;
 
     private RequestQueue requestQueue;
+    private ArrayList<Categories> categories;
+    private CategoriesAdapter adapter;
 
     private String slug;
     private Product product;
@@ -63,6 +69,7 @@ public class EditProductActivity extends AppCompatActivity{
     private String productImage = null; // image string yang akan dikirim  ke server (bukan dalam bentuk gambar tapi dalam bentuk string base64.
     private String productName, productDesc,productQty, productPrice, categoryId, merchantId;
 
+    AccessToken accessToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +80,14 @@ public class EditProductActivity extends AppCompatActivity{
         slug = bundle.getString("slug");
 
         inisial();
+
+        categories = new ArrayList<>();
+        // adapter
+        adapter = new CategoriesAdapter();
+        catP.setAdapter(adapter);
+        catP.setOnItemSelectedListener(this);
+
+        getAllCategories();
 
         getDataSebelumnya();
 
@@ -87,14 +102,12 @@ public class EditProductActivity extends AppCompatActivity{
             @Override
             public void onClick(View v) {
 
-                productName = validasiEdt(nameP);
-                productDesc = validasiEdt(desP);
-                productPrice = validasiEdt(priceP);
-                productQty = validasiEdt(qtyP);
-                categoryId = validasiEdt(idC);
-                merchantId = validasiEdt(idM);
+                productName = nameP.getText().toString();
+                productDesc = desP.getText().toString();
+                productPrice = priceP.getText().toString();
+                productQty = qtyP.getText().toString();
 
-                merchantId = "2";
+                merchantId = String.valueOf(product.getMerchantId());
 
                 if (productImage == null){
                     productImage = null;
@@ -102,22 +115,13 @@ public class EditProductActivity extends AppCompatActivity{
 
                 VolleyLoad();
 
-                Intent intent = new Intent(EditProductActivity.this, ListProduct.class);
+                Intent intent = new Intent(EditProductActivity.this, HomeActivity.class);
                 startActivity(intent);
+                finish();
             }
         });
 
 
-    }
-
-    public String validasiEdt(EditText edt){
-        String text = null;
-        if (edt.getText().toString().length() <= 0) {
-            edt.setError("Isi dulu cuk , matalu siwer apa");
-        }else {
-            text = edt.getText().toString();
-        }
-        return text;
     }
 
 
@@ -127,11 +131,10 @@ public class EditProductActivity extends AppCompatActivity{
         desP = findViewById(R.id.des_product);
         qtyP = findViewById(R.id.qty_product);
 
-        idM = findViewById(R.id.id_merchant);
-        idC = findViewById(R.id.id_category);
-
         imgAdd = findViewById(R.id.add_image);
         addP = findViewById(R.id.add_product);
+
+        catP = findViewById(R.id.spinner_category);
 
         imgP = findViewById(R.id.img_product);
     }
@@ -139,31 +142,61 @@ public class EditProductActivity extends AppCompatActivity{
 
     public void VolleyLoad(){
 
-        String url = "http://210.210.154.65:4444/api/product/"+product.getProductId()+"/update";
+        accessToken = TokenManager.getInstance(getSharedPreferences("pref", MODE_PRIVATE)).getToken();
+        String url = "http://210.210.154.65:4444/api/merchant/product/"+product.getProductId()+"/update";
         requestQueue = Volley.newRequestQueue(this);
-
-//        http://{baseurl}/api/product/{id}/update
-//        Method : PUT
 
         StringRequest addProductReq = new StringRequest(Request.Method.PUT, url,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d("response :", response);
+                        Log.d("response", response);
                         try {
                             JSONObject jsonObject = new JSONObject(response);
-                            Log.i("response :", response);
+                            int code = jsonObject.getInt("code");
+                            if(code == 200){
+                                Toast.makeText(getApplicationContext(), jsonObject.getString("message"), Toast.LENGTH_LONG).show();
+                                Intent intent = new Intent(EditProductActivity.this, HomeActivity.class);
+                                startActivity(intent);
+                            }
+                            else{
+                                //Toast.makeText(getApplicationContext(), jsonObject.getString("message"), Toast.LENGTH_LONG).show();
+                                ProductErrorResponse errorResponse = new Gson().fromJson(jsonObject.getString("message"),ProductErrorResponse.class);
+                                if(errorResponse.getProductNameError().size() != 0) {
+                                    if (errorResponse.getProductNameError().get(0) != null) {
+                                        nameP.setError(errorResponse.getProductNameError().get(0));
+                                        Toast.makeText(getApplicationContext(), errorResponse.getProductNameError().get(0), Toast.LENGTH_SHORT).show();
+                                    }
+                                }
 
-                        } catch (JSONException ex) {
-                            ex.printStackTrace();
+                                if(errorResponse.getProductQtyError().size() != 0) {
+                                    if (errorResponse.getProductQtyError().get(0) != null) {
+                                        qtyP.setError(errorResponse.getProductQtyError().get(0));
+                                        Toast.makeText(getApplicationContext(), errorResponse.getProductQtyError().get(0), Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                                if(errorResponse.getProductPriceError().size() != 0) {
+                                    if (errorResponse.getProductPriceError().get(0) != null) {
+                                        priceP.setError(errorResponse.getProductPriceError().get(0));
+                                        Toast.makeText(getApplicationContext(), errorResponse.getProductPriceError().get(0), Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            }
+                            Log.i("response", response);
+
+                        }catch (Exception e){
+                            e.printStackTrace();
                         }
-                        Toast.makeText(EditProductActivity.this, "data telah terupdate", Toast.LENGTH_SHORT).show();
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(EditProductActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show();
+                        error.printStackTrace();
+                        if(error.networkResponse.statusCode == 400){
+                            Toast.makeText(getApplicationContext(), String.valueOf(error.networkResponse), Toast.LENGTH_LONG).show();
+                        }
+
                     }
                 }){
             @Override
@@ -179,14 +212,16 @@ public class EditProductActivity extends AppCompatActivity{
 
                 params.put("productPrice", productPrice);
                 params.put("categoryId", categoryId);
-                params.put("merchantId", merchantId);
                 return params;
             }
 
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
                 Map<String,String> params = new Hashtable<>();
+
+                params.put("Accept","application/json");
                 params.put("Content-type","application/x-www-form-urlencoded");
+                params.put("Authorization", accessToken.getTokenType()+" "+accessToken.getAccessToken());
                 return params;
             }
         };
@@ -212,14 +247,14 @@ public class EditProductActivity extends AppCompatActivity{
                             Gson gson = new Gson();
                             JSONObject jsonObject = response.getJSONObject("data");
                             product = gson.fromJson(jsonObject.toString(), Product.class);
+                            String urlImg = "http://210.210.154.65:4444/storage/" + product.getProductImage();
 
                             nameP.setText(product.getProductName());
                             desP.setText(product.getProductDesc());
                             qtyP.setText(String.valueOf(product.getProductQty()));
-                            Glide.with(getApplicationContext()).load(product.getProductImage()).into(imgP);
+                            Glide.with(EditProductActivity.this)
+                                    .load(urlImg).into(imgP);
                             priceP.setText(String.valueOf(product.getProductPrice()));
-                            idM.setText(String.valueOf(product.getMerchant().getMerchantId()));
-                            idC.setText(String.valueOf(product.getCategory().getCategoryId()));
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -280,4 +315,50 @@ public class EditProductActivity extends AppCompatActivity{
 
     }
 
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        this.categoryId = String.valueOf(adapter.getItemId(position));
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+
+    private void getAllCategories(){
+        String url = "http://210.210.154.65:4444/api/categories";
+
+        JsonObjectRequest listCatReq = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        // handle response
+                        try {
+                            JSONArray data = response.getJSONArray("data");
+                            for(int i=0;i<data.length();i++){
+                                Gson gson = new Gson();
+                                Categories category = gson.fromJson(data.getJSONObject(i).toString(),Categories.class);
+                                categories.add(category);
+                            }
+
+                            adapter.addData(categories);
+                            adapter.notifyDataSetChanged();
+                            Toast.makeText(getApplicationContext(),String.valueOf(adapter.getCount()),Toast.LENGTH_LONG).show();
+
+                        }
+                        catch (JSONException e){
+                            e.printStackTrace();
+                        }
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                    }
+                });
+        requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(listCatReq);
+    }
 }

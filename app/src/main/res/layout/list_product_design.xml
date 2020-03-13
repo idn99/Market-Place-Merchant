@@ -35,7 +35,7 @@
             android:layout_width="match_parent"
             android:layout_height="15dp"
             android:text="merchant"
-            android:layout_gravity="bottom"
+            android:layout_gravity="center"
             android:textAlignment="center"/>
 
     </LinearLayout>
